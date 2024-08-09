@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', function() {
             this.maxSpeed = 3000; 
             this.acceleration = 700; 
             this.brakingDeceleration = 170; // Braking speed
-            this.normalDeceleration = 50; // Normal deceleration
+            this.normalDeceleration = 70; // Normal deceleration
             this.reverseSpeed = -1500; 
             this.direction = 0; 
             this.angularVelocity = 240; // Degrees per second
