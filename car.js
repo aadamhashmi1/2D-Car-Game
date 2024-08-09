@@ -1,17 +1,13 @@
 document.addEventListener('DOMContentLoaded', function() {
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
-
     const carImage = new Image();
     carImage.src = 'car.png';
-
     const jumpSound = document.getElementById('jumpSound');
     const coinSound = document.getElementById('coinSound');
     const startBallsSound = document.getElementById('startBallsSound');
-
     const coinImage = new Image();
     coinImage.src = 'coin.png';
-
     class Car {
         constructor(x, y, width, height, image) {
             this.x = x;
@@ -35,7 +31,6 @@ document.addEventListener('DOMContentLoaded', function() {
             this.jumpStartTime = null;
             this.shadowSize = 1;
         }
-
         draw(ctx) {
             ctx.save();
             ctx.translate(this.x, this.y);
@@ -43,22 +38,18 @@ document.addEventListener('DOMContentLoaded', function() {
             ctx.drawImage(this.image, -this.width / 2, -this.height / 2, this.width, this.height);
             ctx.restore();
         }
-
         moveForward(deltaTime) {
             const radians = this.direction * Math.PI / 180;
             const velocity = this.speed * 1000 / 3600; 
             this.x += velocity * Math.cos(radians) * deltaTime;
             this.y += velocity * Math.sin(radians) * deltaTime;
-
             const halfWidth = this.width / 2;
             const halfHeight = this.height / 2;
-
             if (this.x - halfWidth < 0) this.x = halfWidth;
             if (this.x + halfWidth > canvas.width) this.x = canvas.width - halfWidth;
             if (this.y - halfHeight < 0) this.y = halfHeight;
             if (this.y + halfHeight > canvas.height) this.y = canvas.height - halfHeight;
         }
-
         updateSpeed() {
             if (this.isAccelerating) {
                 this.speed = Math.min(this.speed + this.acceleration, this.maxSpeed);
@@ -78,7 +69,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
         }
-
         jump(timestamp) {
             if (!this.isJumping) {
                 this.isJumping = true;
@@ -86,18 +76,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 jumpSound.play(); 
             }
         }
-
         updateJump(timestamp) {
             if (this.isJumping) {
                 const elapsed = timestamp - this.jumpStartTime;
                 const halfDuration = this.jumpDuration / 2;
-
                 if (elapsed < this.jumpDuration) {
                     if (elapsed < halfDuration) {
-                        // Ascending part of the jump
                         this.y -= this.jumpHeight * (elapsed / halfDuration);
                     } else {
-                        // Descending part of the jump
                         this.y += this.jumpHeight * ((elapsed - halfDuration) / halfDuration);
                     }
                 } else {
@@ -106,12 +92,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
         }
-
         turn(angle) {
             this.direction += angle;
         }
     }
-
     class Coin {
         constructor(x, y, width, height, image) {
             this.x = x;
@@ -120,12 +104,10 @@ document.addEventListener('DOMContentLoaded', function() {
             this.height = height;
             this.image = image;
         }
-
         draw(ctx) {
             ctx.drawImage(this.image, this.x, this.y, this.width, this.height);
         }
     }
-
     function getRandomColor() {
         const letters = '0123456789ABCDEF';
         let color = '#';
@@ -134,7 +116,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         return color;
     }
-
     class Ball {
         constructor(x, y, radius, dx, dy) {
             this.x = x;
@@ -146,7 +127,6 @@ document.addEventListener('DOMContentLoaded', function() {
             this.originalRadius = radius;
             this.hoverRadius = radius * 2.5; // Enlarge by 50% on hover
         }
-
         draw(ctx) {
             ctx.beginPath();
             ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
@@ -154,12 +134,9 @@ document.addEventListener('DOMContentLoaded', function() {
             ctx.fill();
             ctx.closePath();
         }
-
         update() {
             this.x += this.dx;
             this.y += this.dy;
-
-            // Bounce off the edges
             if (this.x - this.radius < 0 || this.x + this.radius > canvas.width) {
                 this.dx = -this.dx;
             }
@@ -167,16 +144,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 this.dy = -this.dy;
             }
         }
-
         setRadius(newRadius) {
             this.radius = newRadius;
         }
     }
-
     const balls = [];
     const numBalls = 10;
     const ballRadius = 10;
-
     for (let i = 0; i < numBalls; i++) {
         balls.push(new Ball(
             Math.random() * canvas.width,
@@ -186,51 +160,39 @@ document.addEventListener('DOMContentLoaded', function() {
             (Math.random() - 0.5) * 20 
         ));
     }
-
     const car = new Car(400, 300, 140, 70, carImage);
     const coins = [];
     let score = 0;
-
     function generateCoin() {
         const x = Math.random() * (canvas.width - 40) + 20;
         const y = Math.random() * (canvas.height - 40) + 20;
         coins.push(new Coin(x, y, 20, 20, coinImage));
     }
-
     function checkCollision(car, coin) {
         const distX = Math.abs(car.x - coin.x - coin.width / 2);
         const distY = Math.abs(car.y - coin.y - coin.height / 2);
-
         if (distX <= (coin.width / 2 + car.width / 2) && distY <= (coin.height / 2 + car.height / 2)) {
             return true;
         }
         return false;
     }
-
     let lastTime = 0;
     let fps = 0;
     let ballsStarted = false;
-
     function gameLoop(timestamp) {
-        const deltaTime = (timestamp - lastTime) / 1000; // Time in seconds
+        const deltaTime = (timestamp - lastTime) / 1000; 
         lastTime = timestamp;
-
         fps = Math.round(1 / deltaTime);
-
         car.updateSpeed();
         car.updateJump();
         car.moveForward(deltaTime);
-
         if (ballsStarted) {
             balls.forEach(ball => {
                 ball.update();
             });
         }
-
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         car.draw(ctx);
-
-        // Draw coins
         coins.forEach((coin, index) => {
             if (checkCollision(car, coin)) {
                 coins.splice(index, 1);
@@ -241,37 +203,27 @@ document.addEventListener('DOMContentLoaded', function() {
                 coin.draw(ctx);
             }
         });
-
-        // Draw balls
         balls.forEach(ball => {
             ball.draw(ctx);
         });
-
-        // Draw FPS
         ctx.save();
         ctx.fillStyle = 'black';
         ctx.font = '20px Arial';
         ctx.fillText(`FPS: ${fps}`, 10, 30);
-
-        // Draw Speedometer
         ctx.font = '20px Arial';
         ctx.fillText(`Speed: ${Math.round(car.speed)} km/h`, canvas.width - 150, 30);
-
-        // Draw Score
         ctx.font = '20px Arial';
         ctx.fillText(`Score: ${score}`, 10, 60);
         ctx.restore();
 
         requestAnimationFrame(gameLoop);
     }
-
     carImage.onload = function() {
         for (let i = 0; i < 5; i++) {
             generateCoin();
         }
         gameLoop(0);
     };
-
     document.addEventListener('keydown', function(event) {
         switch(event.key) {
             case 'ArrowUp':
@@ -300,7 +252,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 break;
         }
     });
-
     document.addEventListener('keyup', function(event) {
         switch(event.key) {
             case 'ArrowUp':
@@ -312,35 +263,25 @@ document.addEventListener('DOMContentLoaded', function() {
                 break;
         }
     });
-
-    // Add mouse events for hover effect
     canvas.addEventListener('mousemove', function(event) {
         const rect = canvas.getBoundingClientRect();
         const mouseX = event.clientX - rect.left;
         const mouseY = event.clientY - rect.top;
-
         balls.forEach(ball => {
             const dx = mouseX - ball.x;
             const dy = mouseY - ball.y;
             const distance = Math.sqrt(dx * dx + dy * dy);
-
             if (distance < ball.originalRadius) {
                 ball.setRadius(ball.hoverRadius);
             } else {
                 ball.setRadius(ball.originalRadius);
             }
         });
-
-        // Clear the canvas and redraw everything
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         car.draw(ctx);
-
-        // Draw coins
         coins.forEach(coin => {
             coin.draw(ctx);
         });
-
-        // Draw balls
         balls.forEach(ball => {
             ball.draw(ctx);
         });
