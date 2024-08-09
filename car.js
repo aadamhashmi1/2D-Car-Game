@@ -17,11 +17,13 @@ document.addEventListener('DOMContentLoaded', function() {
             this.height = height;
             this.image = image;
             this.speed = 0; 
-            this.maxSpeed = 500; 
-            this.acceleration = 30; 
-            this.deceleration = 6; 
-            this.reverseSpeed = -200; 
+            this.maxSpeed = 3000; 
+            this.acceleration = 700; 
+            this.brakingDeceleration = 170; // Braking speed
+            this.normalDeceleration = 50; // Normal deceleration
+            this.reverseSpeed = -1500; 
             this.direction = 0; 
+            this.angularVelocity = 240; // Degrees per second
             this.isAccelerating = false;
             this.isBraking = false;
             this.isReversing = false;
@@ -31,6 +33,7 @@ document.addEventListener('DOMContentLoaded', function() {
             this.jumpStartTime = null;
             this.shadowSize = 1;
         }
+    
         draw(ctx) {
             ctx.save();
             ctx.translate(this.x, this.y);
@@ -38,6 +41,7 @@ document.addEventListener('DOMContentLoaded', function() {
             ctx.drawImage(this.image, -this.width / 2, -this.height / 2, this.width, this.height);
             ctx.restore();
         }
+    
         moveForward(deltaTime) {
             const radians = this.direction * Math.PI / 180;
             const velocity = this.speed * 1000 / 3600; 
@@ -50,25 +54,43 @@ document.addEventListener('DOMContentLoaded', function() {
             if (this.y - halfHeight < 0) this.y = halfHeight;
             if (this.y + halfHeight > canvas.height) this.y = canvas.height - halfHeight;
         }
+    
         updateSpeed() {
             if (this.isAccelerating) {
                 this.speed = Math.min(this.speed + this.acceleration, this.maxSpeed);
-            } else if (this.isBraking) {
+            }
+    
+            if (this.isBraking) {
                 if (this.speed > 0) {
-                    this.speed = Math.max(this.speed - this.deceleration, 0);
+                    this.speed = Math.max(this.speed - this.brakingDeceleration, 0);
+                } else if (this.speed < 0) {
+                    this.speed = Math.min(this.speed + this.brakingDeceleration, 0);
                 }
             } else if (this.isReversing) {
-                if (this.speed <= 0) {
-                    this.speed = Math.max(this.speed + this.reverseSpeed / 2, this.reverseSpeed);
+                if (this.speed >= 0) {
+                    this.speed = Math.max(this.speed - this.normalDeceleration, this.reverseSpeed);
+                } else {
+                    this.speed = Math.min(this.speed + this.normalDeceleration, this.reverseSpeed);
                 }
             } else {
                 if (this.speed > 0) {
-                    this.speed = Math.max(this.speed - this.deceleration, 0);
+                    this.speed = Math.max(this.speed - this.normalDeceleration, 0);
                 } else if (this.speed < 0) {
-                    this.speed = Math.min(this.speed + this.deceleration, 0);
+                    this.speed = Math.min(this.speed + this.normalDeceleration, 0);
                 }
             }
         }
+    
+        updateDirection(deltaTime) {
+            if (this.isTurningLeft) {
+                this.direction -= this.angularVelocity * deltaTime;
+            }
+            if (this.isTurningRight) {
+                this.direction += this.angularVelocity * deltaTime;
+            }
+            this.direction %= 360; // Ensure direction stays within 0-359 degrees
+        }
+    
         jump(timestamp) {
             if (!this.isJumping) {
                 this.isJumping = true;
@@ -76,6 +98,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 jumpSound.play(); 
             }
         }
+    
         updateJump(timestamp) {
             if (this.isJumping) {
                 const elapsed = timestamp - this.jumpStartTime;
@@ -92,10 +115,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
         }
-        turn(angle) {
-            this.direction += angle;
+    
+        turnLeft() {
+            this.isTurningLeft = true;
+        }
+    
+        turnRight() {
+            this.isTurningRight = true;
+        }
+    
+        stopTurning() {
+            this.isTurningLeft = false;
+            this.isTurningRight = false;
         }
     }
+    
+    
+    
     class Coin {
         constructor(x, y, width, height, image) {
             this.x = x;
@@ -160,7 +196,7 @@ document.addEventListener('DOMContentLoaded', function() {
             (Math.random() - 0.5) * 20 
         ));
     }
-    const car = new Car(400, 300, 140, 70, carImage);
+    const car = new Car(400, 300, 60, 30, carImage);
     const coins = [];
     let score = 0;
     function generateCoin() {
@@ -184,6 +220,7 @@ document.addEventListener('DOMContentLoaded', function() {
         lastTime = timestamp;
         fps = Math.round(1 / deltaTime);
         car.updateSpeed();
+        car.updateDirection(deltaTime); // Update direction for smooth turning
         car.updateJump();
         car.moveForward(deltaTime);
         if (ballsStarted) {
@@ -215,9 +252,10 @@ document.addEventListener('DOMContentLoaded', function() {
         ctx.font = '20px Arial';
         ctx.fillText(`Score: ${score}`, 10, 60);
         ctx.restore();
-
+    
         requestAnimationFrame(gameLoop);
     }
+    
     carImage.onload = function() {
         for (let i = 0; i < 5; i++) {
             generateCoin();
@@ -237,10 +275,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 break;
             case 'ArrowLeft':
-                car.turn(-15);
+                car.turnLeft(30);
                 break;
             case 'ArrowRight':
-                car.turn(15);
+                car.turnRight(30);
                 break;
             case ' ':
                 car.jump();
@@ -252,6 +290,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 break;
         }
     });
+    
     document.addEventListener('keyup', function(event) {
         switch(event.key) {
             case 'ArrowUp':
@@ -261,8 +300,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 car.isBraking = false;
                 car.isReversing = false;
                 break;
+            case 'ArrowLeft':
+            case 'ArrowRight':
+                car.stopTurning();
+                break;
         }
     });
+    
     canvas.addEventListener('mousemove', function(event) {
         const rect = canvas.getBoundingClientRect();
         const mouseX = event.clientX - rect.left;
